@@ -33,15 +33,27 @@ tech = ["rust", "clap"]
 
 ## Installation
 
-Place your profile at:
-
 ```bash
-~/.config/agent/whoami.toml
+cd validator
+cargo install --path .
 ```
 
-Or set a custom location:
+Or use the binary from `validator/target/release/whoami-validator`.
+
+## Quick Start
+
+Create a profile interactively:
 
 ```bash
+whoami-validator init
+```
+
+This will ask you questions and generate `~/.config/agent/whoami.toml`.
+
+Or specify a custom location:
+
+```bash
+whoami-validator init -o ~/dotfiles/whoami.toml
 export AGENT_WHOAMI=~/dotfiles/whoami.toml
 ```
 
@@ -49,13 +61,29 @@ export AGENT_WHOAMI=~/dotfiles/whoami.toml
 
 ### For Users
 
-1. Create your `whoami.toml` (see [examples/whoami.toml](examples/whoami.toml))
-2. Place it at `~/.config/agent/whoami.toml`
-3. Encrypt sensitive fields with SOPS (optional):
-   ```bash
-   sops -e -i ~/.config/agent/whoami.toml
-   ```
-4. AI tools that support whoami will automatically read it
+**Option 1: Use the wizard (recommended)**
+
+```bash
+whoami-validator init
+```
+
+**Option 2: Create manually**
+
+1. Copy [examples/whoami.toml](examples/whoami.toml) to `~/.config/agent/whoami.toml`
+2. Edit to match your preferences
+3. Validate: `whoami-validator ~/.config/agent/whoami.toml`
+
+**Option 3: Start minimal**
+
+Copy [examples/minimal.toml](examples/minimal.toml) and expand as needed.
+
+### Encrypt sensitive fields (optional)
+
+```bash
+sops -e -i ~/.config/agent/whoami.toml
+```
+
+AI tools that support whoami will automatically read it.
 
 ### For Tool Developers
 
@@ -124,10 +152,17 @@ cp whoami.toml whoami.pub.toml
 
 ## Validator
 
-Validate your profile:
+The validator can create and validate profiles:
 
 ```bash
-cargo run --bin validate ~/.config/agent/whoami.toml
+# Create a new profile interactively
+whoami-validator init
+
+# Validate an existing profile
+whoami-validator ~/.config/agent/whoami.toml
+
+# Create at custom location
+whoami-validator init -o ~/dotfiles/agent/whoami.toml
 ```
 
 ## Dotfiles Integration
