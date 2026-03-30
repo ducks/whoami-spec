@@ -1,0 +1,112 @@
+version = "20260330"
+
+[person]
+name = "Jake Goldsborough"
+username = "jakegoldsborough"
+email = "github@pancakes.email"
+roles = ["backend engineer", "infrastructure engineer", "self-hoster"]
+pronouns = "he/him"
+
+[communication]
+style = "direct, no fluff, technical peer not cheerleader"
+code_comments = "only for non-obvious logic"
+emoji_in_code = false
+emoji_in_commits = true
+tone = "assume technical knowledge, skip explanations of basics"
+explanations = "concise, show code not theory"
+
+[technical.languages]
+primary = ["rust", "typescript", "bash"]
+secondary = ["python", "sql"]
+learning = []
+
+[technical.frameworks]
+rust = ["axum", "tokio", "clap", "serde", "sqlx"]
+typescript = ["sveltekit", "svelte5-runes", "drizzle"]
+infrastructure = ["systemd", "caddy", "postgresql"]
+
+[technical.tools]
+editor = "vim"
+shell = "zsh"
+vcs = "git"
+package_managers = ["cargo", "npm", "nix"]
+deployment = ["systemd", "makefiles", "bash-scripts"]
+
+[preferences.code]
+tabs_or_spaces = "tabs"
+line_length = 100
+commit_style = "conventional-commits-with-emoji"
+testing_philosophy = "integration-over-unit"
+error_handling = "explicit-results-no-exceptions"
+
+[preferences.docs]
+format = "markdown"
+location = "README.md at repo root, no wikis"
+structure = "what-why-how, skip motivational fluff"
+
+[preferences.architecture]
+deployment = "systemd over docker for single-VPS"
+dependencies = "minimize, prefer stdlib"
+complexity = "simple over clever, YAGNI"
+databases = "postgresql, no ORMs unless drizzle"
+
+[domains.expertise]
+areas = ["self-hosting", "VPS infrastructure", "systemd", "postgresql", "API design"]
+specific = ["multi-tenant SaaS", "session auth", "migrations", "systemd services"]
+
+[domains.learning]
+current = ["multi-model orchestration", "JOBL specification"]
+interested = []
+
+[[projects.active]]
+name = "skillz"
+path = "~/dev/skillz"
+description = "Claude Code skill package manager"
+tech = ["rust", "clap"]
+url = "https://github.com/jakegoldsborough/skillz"
+
+[[projects.active]]
+name = "hosted-resumes"
+path = "~/dev/hosted-resumes.com"
+description = "JOBL resume hosting SaaS"
+tech = ["sveltekit", "drizzle", "postgresql"]
+
+[[projects.active]]
+name = "scrob"
+path = "~/dev/scrob"
+description = "Self-hosted music scrobbler"
+tech = ["rust", "axum", "postgresql", "sqlx"]
+
+[[projects.active]]
+name = "finna"
+path = "~/dev/finna"
+description = "Multi-model spec and implement tool"
+tech = ["rust", "tokio"]
+
+[context]
+dotfiles = "~/dotfiles"
+notes = "~/claude/notes"
+projects_index = "~/claude/projects.md"
+daily_notes_format = "~/claude/notes/YYYY/YYYY-MM-DD.md"
+
+[boundaries]
+no = [
+  "docker for single-VPS (use systemd)",
+  "unnecessary frameworks (bash + standard tools preferred)",
+  "cloud-only services (self-host where possible)",
+  "microservices for small projects",
+  "premature optimization"
+]
+
+yes = [
+  "ship early, iterate",
+  "boring technology",
+  "explicit over implicit",
+  "delete code over adding features"
+]
+
+# [api_keys]
+# Uncomment and encrypt with SOPS for production use
+# openai = "sk-..."
+# anthropic = "sk-ant-..."
+# github = "ghp_..."

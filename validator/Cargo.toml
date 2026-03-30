@@ -1,0 +1,10 @@
+[package]
+name = "whoami-validator"
+version = "20260330.0.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"

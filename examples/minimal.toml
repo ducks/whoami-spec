@@ -1,0 +1,11 @@
+version = "20260330"
+
+[person]
+name = "Jane Developer"
+roles = ["software engineer"]
+
+[technical.languages]
+primary = ["python", "javascript"]
+
+[communication]
+style = "friendly and concise"
