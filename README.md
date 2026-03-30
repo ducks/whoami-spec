@@ -56,11 +56,18 @@ whoami init
 
 This will ask you questions and generate `~/.config/agent/whoami.toml`.
 
+View your profile:
+
+```bash
+whoami show
+```
+
 Or specify a custom location:
 
 ```bash
 whoami init -o ~/dotfiles/whoami.toml
 export AGENT_WHOAMI=~/dotfiles/whoami.toml
+whoami show
 ```
 
 ## Usage
@@ -160,11 +167,17 @@ cp whoami.toml whoami.pub.toml
 
 ## CLI Tool
 
-The `whoami` CLI can create and validate profiles:
+The `whoami` CLI can create, validate, and display profiles:
 
 ```bash
 # Create a new profile interactively
 whoami init
+
+# Show your profile in readable format
+whoami show
+
+# Show a specific profile
+whoami show ~/dotfiles/whoami.toml
 
 # Validate an existing profile
 whoami ~/.config/agent/whoami.toml

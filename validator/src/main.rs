@@ -25,6 +25,11 @@ enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Show your whoami profile in a readable format
+    Show {
+        /// Path to whoami.toml (default: $AGENT_WHOAMI or ~/.config/agent/whoami.toml)
+        path: Option<PathBuf>,
+    },
 }
 
 #[derive(Debug, Deserialize)]
@@ -114,6 +119,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Some(Commands::Init { output }) => init_profile(output),
+        Some(Commands::Show { path }) => show_profile(path),
         None => {
             let path = cli.path.context("Path to whoami.toml required (or use 'init' subcommand)")?;
             validate_profile(path)
@@ -343,4 +349,242 @@ fn validate_profile(path: PathBuf) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn show_profile(path: Option<PathBuf>) -> Result<()> {
+    // Resolve path: CLI arg -> $AGENT_WHOAMI -> default
+    let profile_path = if let Some(p) = path {
+        p
+    } else if let Ok(env_path) = env::var("AGENT_WHOAMI") {
+        PathBuf::from(env_path)
+    } else {
+        PathBuf::from(format!(
+            "{}/.config/agent/whoami.toml",
+            env::var("HOME").unwrap_or_else(|_| ".".to_string())
+        ))
+    };
+
+    let content = fs::read_to_string(&profile_path)
+        .with_context(|| format!("Failed to read file: {}", profile_path.display()))?;
+
+    let profile: Profile = toml::from_str(&content)
+        .context("Failed to parse TOML")?;
+
+    println!("\n{}\n", "=".repeat(60));
+    println!("  whoami profile: {}", profile_path.display());
+    println!("{}\n", "=".repeat(60));
+
+    // Person section
+    if let Some(person) = &profile.person {
+        println!("[Person]");
+        if let Some(name) = &person.name {
+            println!("  Name: {}", name);
+        }
+        if let Some(username) = &person.username {
+            println!("  Username: {}", username);
+        }
+        if let Some(email) = &person.email {
+            println!("  Email: {}", email);
+        }
+        if !person.roles.is_empty() {
+            println!("  Roles: {}", person.roles.join(", "));
+        }
+        if let Some(pronouns) = &person.pronouns {
+            println!("  Pronouns: {}", pronouns);
+        }
+        println!();
+    }
+
+    // Communication section
+    if let Some(comm) = &profile.communication {
+        println!("[Communication]");
+        if let Some(style) = &comm.style {
+            println!("  Style: {}", style);
+        }
+        if let Some(code_comments) = &comm.code_comments {
+            println!("  Code comments: {}", code_comments);
+        }
+        if let Some(emoji_code) = comm.emoji_in_code {
+            println!("  Emoji in code: {}", emoji_code);
+        }
+        if let Some(emoji_commits) = comm.emoji_in_commits {
+            println!("  Emoji in commits: {}", emoji_commits);
+        }
+        if let Some(tone) = &comm.tone {
+            println!("  Tone: {}", tone);
+        }
+        if let Some(explanations) = &comm.explanations {
+            println!("  Explanations: {}", explanations);
+        }
+        println!();
+    }
+
+    // Technical section
+    if let Some(tech) = &profile.technical {
+        println!("[Technical]");
+
+        if let Some(languages) = &tech.languages {
+            if let Some(table) = languages.as_table() {
+                for (key, value) in table {
+                    if let Some(arr) = value.as_array() {
+                        let items: Vec<String> = arr.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|s| s.to_string())
+                            .collect();
+                        println!("  Languages ({}): {}", key, items.join(", "));
+                    }
+                }
+            }
+        }
+
+        if let Some(frameworks) = &tech.frameworks {
+            if let Some(table) = frameworks.as_table() {
+                for (key, value) in table {
+                    if let Some(arr) = value.as_array() {
+                        let items: Vec<String> = arr.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|s| s.to_string())
+                            .collect();
+                        println!("  Frameworks ({}): {}", key, items.join(", "));
+                    }
+                }
+            }
+        }
+
+        if let Some(tools) = &tech.tools {
+            if let Some(table) = tools.as_table() {
+                for (key, value) in table {
+                    if let Some(s) = value.as_str() {
+                        println!("  {}: {}", key, s);
+                    } else if let Some(arr) = value.as_array() {
+                        let items: Vec<String> = arr.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|s| s.to_string())
+                            .collect();
+                        println!("  {}: {}", key, items.join(", "));
+                    }
+                }
+            }
+        }
+        println!();
+    }
+
+    // Projects section
+    if let Some(projects) = &profile.projects {
+        if !projects.active.is_empty() {
+            println!("[Projects] ({} active)", projects.active.len());
+            for project in &projects.active {
+                println!("  • {}", project.name);
+                if let Some(path) = &project.path {
+                    println!("    Path: {}", path);
+                }
+                if let Some(desc) = &project.description {
+                    println!("    Description: {}", desc);
+                }
+                if !project.tech.is_empty() {
+                    println!("    Tech: {}", project.tech.join(", "));
+                }
+                if let Some(url) = &project.url {
+                    println!("    URL: {}", url);
+                }
+            }
+            println!();
+        }
+    }
+
+    // Preferences section
+    if let Some(preferences) = &profile.preferences {
+        if let Some(table) = preferences.as_table() {
+            if !table.is_empty() {
+                println!("[Preferences]");
+                print_toml_table(table, 1);
+                println!();
+            }
+        }
+    }
+
+    // Domains section
+    if let Some(domains) = &profile.domains {
+        if let Some(table) = domains.as_table() {
+            if !table.is_empty() {
+                println!("[Domains]");
+                print_toml_table(table, 1);
+                println!();
+            }
+        }
+    }
+
+    // Context section
+    if let Some(context) = &profile.context {
+        if let Some(table) = context.as_table() {
+            if !table.is_empty() {
+                println!("[Context]");
+                print_toml_table(table, 1);
+                println!();
+            }
+        }
+    }
+
+    // Boundaries section
+    if let Some(boundaries) = &profile.boundaries {
+        if let Some(table) = boundaries.as_table() {
+            if !table.is_empty() {
+                println!("[Boundaries]");
+                print_toml_table(table, 1);
+                println!();
+            }
+        }
+    }
+
+    // API Keys section
+    if let Some(api_keys) = &profile.api_keys {
+        if let Some(table) = api_keys.as_table() {
+            if !table.is_empty() {
+                println!("[API Keys]");
+                for (key, value) in table {
+                    if let Some(s) = value.as_str() {
+                        // Hide actual key values
+                        if s.starts_with("ENC[") {
+                            println!("  {}: [encrypted]", key);
+                        } else if s.len() > 10 {
+                            println!("  {}: {}...{}", key, &s[..4], &s[s.len()-4..]);
+                        } else {
+                            println!("  {}: [hidden]", key);
+                        }
+                    }
+                }
+                println!();
+            }
+        }
+    }
+
+    println!("{}", "=".repeat(60));
+
+    Ok(())
+}
+
+fn print_toml_table(table: &toml::map::Map<String, toml::Value>, indent: usize) {
+    let prefix = "  ".repeat(indent);
+    for (key, value) in table {
+        match value {
+            toml::Value::String(s) => println!("{}{}: {}", prefix, key, s),
+            toml::Value::Integer(i) => println!("{}{}: {}", prefix, key, i),
+            toml::Value::Float(f) => println!("{}{}: {}", prefix, key, f),
+            toml::Value::Boolean(b) => println!("{}{}: {}", prefix, key, b),
+            toml::Value::Array(arr) => {
+                let items: Vec<String> = arr.iter()
+                    .map(|v| match v {
+                        toml::Value::String(s) => s.clone(),
+                        _ => format!("{:?}", v),
+                    })
+                    .collect();
+                println!("{}{}: {}", prefix, key, items.join(", "));
+            },
+            toml::Value::Table(t) => {
+                println!("{}{}:", prefix, key);
+                print_toml_table(t, indent + 1);
+            },
+            _ => println!("{}{}: {:?}", prefix, key, value),
+        }
+    }
 }
