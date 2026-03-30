@@ -1,7 +1,20 @@
 [package]
-name = "whoami-validator"
+name = "whoami-cli"
 version = "20260330.0.0"
 edition = "2021"
+authors = ["Jake Goldsborough <github@pancakes.email>"]
+description = "CLI tool for whoami.toml - portable AI agent profiles. Create and validate profiles interactively."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jakegoldsborough/whoami-spec"
+homepage = "https://github.com/jakegoldsborough/whoami-spec"
+documentation = "https://github.com/jakegoldsborough/whoami-spec#readme"
+keywords = ["ai", "agent", "profile", "config", "toml"]
+categories = ["command-line-utilities", "config"]
+readme = "../README.md"
+
+[[bin]]
+name = "whoami"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1"

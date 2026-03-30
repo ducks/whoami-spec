@@ -33,19 +33,25 @@ tech = ["rust", "clap"]
 
 ## Installation
 
+### From crates.io
+
+```bash
+cargo install whoami-cli
+```
+
+### From source
+
 ```bash
 cd validator
 cargo install --path .
 ```
-
-Or use the binary from `validator/target/release/whoami-validator`.
 
 ## Quick Start
 
 Create a profile interactively:
 
 ```bash
-whoami-validator init
+whoami init
 ```
 
 This will ask you questions and generate `~/.config/agent/whoami.toml`.
@@ -53,7 +59,7 @@ This will ask you questions and generate `~/.config/agent/whoami.toml`.
 Or specify a custom location:
 
 ```bash
-whoami-validator init -o ~/dotfiles/whoami.toml
+whoami init -o ~/dotfiles/whoami.toml
 export AGENT_WHOAMI=~/dotfiles/whoami.toml
 ```
 
@@ -64,14 +70,14 @@ export AGENT_WHOAMI=~/dotfiles/whoami.toml
 **Option 1: Use the wizard (recommended)**
 
 ```bash
-whoami-validator init
+whoami init
 ```
 
 **Option 2: Create manually**
 
 1. Copy [examples/whoami.toml](examples/whoami.toml) to `~/.config/agent/whoami.toml`
 2. Edit to match your preferences
-3. Validate: `whoami-validator ~/.config/agent/whoami.toml`
+3. Validate: `whoami ~/.config/agent/whoami.toml`
 
 **Option 3: Start minimal**
 
@@ -152,19 +158,19 @@ cp whoami.toml whoami.pub.toml
 - [Jake's whoami.toml](examples/whoami.toml) - Full example with all sections
 - [Minimal whoami.toml](examples/minimal.toml) - Just the essentials
 
-## Validator
+## CLI Tool
 
-The validator can create and validate profiles:
+The `whoami` CLI can create and validate profiles:
 
 ```bash
 # Create a new profile interactively
-whoami-validator init
+whoami init
 
 # Validate an existing profile
-whoami-validator ~/.config/agent/whoami.toml
+whoami ~/.config/agent/whoami.toml
 
 # Create at custom location
-whoami-validator init -o ~/dotfiles/agent/whoami.toml
+whoami init -o ~/dotfiles/agent/whoami.toml
 ```
 
 ## Dotfiles Integration
