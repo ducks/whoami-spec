@@ -40,11 +40,11 @@ version-bump:
 	@echo "Updating Cargo.lock..."
 	@cd validator && cargo check --quiet 2>/dev/null || true
 	@git add validator/Cargo.toml validator/Cargo.lock
-	@git commit -m "chore: bump version to $(VERSION)"
+	@git diff --staged --quiet || git commit -m "chore: bump version to $(VERSION)"
 	@echo ""
 	@echo "Created branch release/v$(VERSION)"
 	@echo "Version bumped to $(VERSION)"
-	@echo "Commit created"
+	@if git diff --staged --quiet; then echo "No version change needed"; else echo "Commit created"; fi
 
 # Merge to main, tag, push, and publish to crates.io
 release: version-bump
