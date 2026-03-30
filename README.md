@@ -79,11 +79,13 @@ Copy [examples/minimal.toml](examples/minimal.toml) and expand as needed.
 
 ### Encrypt sensitive fields (optional)
 
+If your profile contains API keys or email addresses:
+
 ```bash
 sops -e -i ~/.config/agent/whoami.toml
 ```
 
-AI tools that support whoami will automatically read it.
+Note: AI tools need SOPS support to read encrypted profiles. Tools that implement the whoami spec can automatically load user context from this file.
 
 ### For Tool Developers
 
