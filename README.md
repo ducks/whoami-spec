@@ -42,7 +42,7 @@ cargo install whoami-cli
 ### From source
 
 ```bash
-cd validator
+cd cli
 cargo install --path .
 ```
 
@@ -51,7 +51,9 @@ cargo install --path .
 Create a profile interactively:
 
 ```bash
-whoami init
+wai init
+# or
+whoami-cli init
 ```
 
 This will ask you questions and generate `~/.config/agent/whoami.toml`.
@@ -59,15 +61,23 @@ This will ask you questions and generate `~/.config/agent/whoami.toml`.
 View your profile:
 
 ```bash
-whoami show
+wai show
+```
+
+Convert to different formats:
+
+```bash
+wai convert vcf --out contact.vcf
+wai convert json > profile.json
+wai convert yaml
 ```
 
 Or specify a custom location:
 
 ```bash
-whoami init -o ~/dotfiles/whoami.toml
+wai init -o ~/dotfiles/whoami.toml
 export AGENT_WHOAMI=~/dotfiles/whoami.toml
-whoami show
+wai show
 ```
 
 ## Usage
@@ -77,14 +87,14 @@ whoami show
 **Option 1: Use the wizard (recommended)**
 
 ```bash
-whoami init
+wai init
 ```
 
 **Option 2: Create manually**
 
 1. Copy [examples/whoami.toml](examples/whoami.toml) to `~/.config/agent/whoami.toml`
 2. Edit to match your preferences
-3. Validate: `whoami ~/.config/agent/whoami.toml`
+3. Validate: `wai ~/.config/agent/whoami.toml`
 
 **Option 3: Start minimal**
 
@@ -167,24 +177,35 @@ cp whoami.toml whoami.pub.toml
 
 ## CLI Tool
 
-The `whoami` CLI can create, validate, and display profiles:
+The `wai` (or `whoami-cli`) CLI can create, validate, display, and convert profiles:
 
 ```bash
 # Create a new profile interactively
-whoami init
+wai init
 
 # Show your profile in readable format
-whoami show
+wai show
 
 # Show a specific profile
-whoami show ~/dotfiles/whoami.toml
+wai show ~/dotfiles/whoami.toml
 
 # Validate an existing profile
-whoami ~/.config/agent/whoami.toml
+wai ~/.config/agent/whoami.toml
 
 # Create at custom location
-whoami init -o ~/dotfiles/agent/whoami.toml
+wai init -o ~/dotfiles/agent/whoami.toml
+
+# Convert to different formats
+wai convert vcf --out contact.vcf       # vCard for contacts
+wai convert json > profile.json         # JSON for programmatic use
+wai convert yaml                        # YAML output to stdout
 ```
+
+### Output Formats
+
+- **VCF (vCard 4.0)**: Import your profile into contacts apps. Includes name, email, roles, pronouns, and technical skills.
+- **JSON**: Machine-readable format for integration with other tools.
+- **YAML**: Human-readable structured output.
 
 ## Dotfiles Integration
 
