@@ -13,7 +13,11 @@ categories = ["command-line-utilities", "config"]
 readme = "../README.md"
 
 [[bin]]
-name = "whoami"
+name = "wai"
+path = "src/main.rs"
+
+[[bin]]
+name = "whoami-cli"
 path = "src/main.rs"
 
 [dependencies]

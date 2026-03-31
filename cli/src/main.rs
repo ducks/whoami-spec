@@ -30,6 +30,17 @@ enum Commands {
         /// Path to whoami.toml (default: $AGENT_WHOAMI or ~/.config/agent/whoami.toml)
         path: Option<PathBuf>,
     },
+    /// Convert whoami profile to different formats
+    Convert {
+        /// Output format (vcf, json, yaml)
+        format: String,
+        /// Path to whoami.toml (default: $AGENT_WHOAMI or ~/.config/agent/whoami.toml)
+        #[arg(short, long)]
+        input: Option<PathBuf>,
+        /// Output file path (default: stdout)
+        #[arg(short, long)]
+        out: Option<PathBuf>,
+    },
 }
 
 #[derive(Debug, Deserialize)]
@@ -120,6 +131,7 @@ fn main() -> Result<()> {
     match cli.command {
         Some(Commands::Init { output }) => init_profile(output),
         Some(Commands::Show { path }) => show_profile(path),
+        Some(Commands::Convert { format, input, out }) => convert_profile(format, input, out),
         None => {
             let path = cli.path.context("Path to whoami.toml required (or use 'init' subcommand)")?;
             validate_profile(path)
@@ -586,5 +598,262 @@ fn print_toml_table(table: &toml::map::Map<String, toml::Value>, indent: usize) 
             },
             _ => println!("{}{}: {:?}", prefix, key, value),
         }
+    }
+}
+
+fn convert_profile(format: String, input: Option<PathBuf>, out: Option<PathBuf>) -> Result<()> {
+    // Resolve input path: CLI arg -> $AGENT_WHOAMI -> default
+    let profile_path = if let Some(p) = input {
+        p
+    } else if let Ok(env_path) = env::var("AGENT_WHOAMI") {
+        PathBuf::from(env_path)
+    } else {
+        PathBuf::from(format!(
+            "{}/.config/agent/whoami.toml",
+            env::var("HOME").unwrap_or_else(|_| ".".to_string())
+        ))
+    };
+
+    let content = fs::read_to_string(&profile_path)
+        .with_context(|| format!("Failed to read file: {}", profile_path.display()))?;
+
+    let profile: Profile = toml::from_str(&content)
+        .context("Failed to parse TOML")?;
+
+    let output = match format.to_lowercase().as_str() {
+        "vcf" => convert_to_vcf(&profile)?,
+        "json" => convert_to_json(&profile)?,
+        "yaml" => convert_to_yaml(&profile)?,
+        _ => anyhow::bail!("Unsupported format: {}. Supported formats: vcf, json, yaml", format),
+    };
+
+    // Write to file or stdout
+    if let Some(out_path) = out {
+        fs::write(&out_path, output)?;
+        eprintln!("✓ Converted to {} at {}", format, out_path.display());
+    } else {
+        print!("{}", output);
+    }
+
+    Ok(())
+}
+
+fn convert_to_vcf(profile: &Profile) -> Result<String> {
+    let mut vcf = String::new();
+
+    vcf.push_str("BEGIN:VCARD\n");
+    vcf.push_str("VERSION:4.0\n");
+
+    if let Some(person) = &profile.person {
+        // FN (Full Name) - required field
+        if let Some(name) = &person.name {
+            vcf.push_str(&format!("FN:{}\n", name));
+            // N (Structured Name) - format: Family;Given;Additional;Prefix;Suffix
+            vcf.push_str(&format!("N:;{};;;\n", name));
+        }
+
+        // EMAIL
+        if let Some(email) = &person.email {
+            vcf.push_str(&format!("EMAIL;TYPE=INTERNET:{}\n", email));
+        }
+
+        // NICKNAME (username)
+        if let Some(username) = &person.username {
+            vcf.push_str(&format!("NICKNAME:{}\n", username));
+        }
+
+        // ROLE
+        if !person.roles.is_empty() {
+            vcf.push_str(&format!("ROLE:{}\n", person.roles.join(", ")));
+        }
+
+        // X-PRONOUNS (custom field)
+        if let Some(pronouns) = &person.pronouns {
+            vcf.push_str(&format!("X-PRONOUNS:{}\n", pronouns));
+        }
+    }
+
+    // Add technical info as notes
+    let mut notes = Vec::new();
+
+    if let Some(tech) = &profile.technical {
+        if let Some(languages) = &tech.languages {
+            if let Some(table) = languages.as_table() {
+                for (key, value) in table {
+                    if let Some(arr) = value.as_array() {
+                        let items: Vec<String> = arr.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|s| s.to_string())
+                            .collect();
+                        notes.push(format!("Languages ({}): {}", key, items.join(", ")));
+                    }
+                }
+            }
+        }
+    }
+
+    if !notes.is_empty() {
+        vcf.push_str(&format!("NOTE:{}\n", notes.join("\\n")));
+    }
+
+    // Add profile source
+    vcf.push_str(&format!("SOURCE:whoami-spec v{}\n", profile.version));
+
+    vcf.push_str("END:VCARD\n");
+
+    Ok(vcf)
+}
+
+fn convert_to_json(profile: &Profile) -> Result<String> {
+    // Simple JSON serialization - could be enhanced with serde_json
+    let mut json = String::from("{\n");
+    json.push_str(&format!("  \"version\": \"{}\",\n", profile.version));
+
+    if let Some(person) = &profile.person {
+        json.push_str("  \"person\": {\n");
+        if let Some(name) = &person.name {
+            json.push_str(&format!("    \"name\": \"{}\",\n", name));
+        }
+        if let Some(username) = &person.username {
+            json.push_str(&format!("    \"username\": \"{}\",\n", username));
+        }
+        if let Some(email) = &person.email {
+            json.push_str(&format!("    \"email\": \"{}\",\n", email));
+        }
+        if !person.roles.is_empty() {
+            json.push_str("    \"roles\": [");
+            json.push_str(&person.roles.iter()
+                .map(|r| format!("\"{}\"", r))
+                .collect::<Vec<_>>()
+                .join(", "));
+            json.push_str("]\n");
+        }
+        json.push_str("  }\n");
+    }
+
+    json.push_str("}\n");
+    Ok(json)
+}
+
+fn convert_to_yaml(profile: &Profile) -> Result<String> {
+    // Simple YAML output
+    let mut yaml = String::new();
+    yaml.push_str(&format!("version: \"{}\"\n", profile.version));
+
+    if let Some(person) = &profile.person {
+        yaml.push_str("\nperson:\n");
+        if let Some(name) = &person.name {
+            yaml.push_str(&format!("  name: \"{}\"\n", name));
+        }
+        if let Some(username) = &person.username {
+            yaml.push_str(&format!("  username: \"{}\"\n", username));
+        }
+        if let Some(email) = &person.email {
+            yaml.push_str(&format!("  email: \"{}\"\n", email));
+        }
+        if !person.roles.is_empty() {
+            yaml.push_str("  roles:\n");
+            for role in &person.roles {
+                yaml.push_str(&format!("    - \"{}\"\n", role));
+            }
+        }
+    }
+
+    Ok(yaml)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_profile() -> Profile {
+        Profile {
+            version: "20260330".to_string(),
+            person: Some(Person {
+                name: Some("Test User".to_string()),
+                username: Some("testuser".to_string()),
+                email: Some("test@example.com".to_string()),
+                roles: vec!["engineer".to_string(), "developer".to_string()],
+                pronouns: Some("they/them".to_string()),
+            }),
+            communication: None,
+            technical: None,
+            preferences: None,
+            domains: None,
+            projects: None,
+            context: None,
+            boundaries: None,
+            api_keys: None,
+        }
+    }
+
+    #[test]
+    fn test_vcf_conversion() {
+        let profile = test_profile();
+        let vcf = convert_to_vcf(&profile).unwrap();
+
+        assert!(vcf.contains("BEGIN:VCARD"));
+        assert!(vcf.contains("VERSION:4.0"));
+        assert!(vcf.contains("FN:Test User"));
+        assert!(vcf.contains("EMAIL;TYPE=INTERNET:test@example.com"));
+        assert!(vcf.contains("NICKNAME:testuser"));
+        assert!(vcf.contains("ROLE:engineer, developer"));
+        assert!(vcf.contains("X-PRONOUNS:they/them"));
+        assert!(vcf.contains("END:VCARD"));
+    }
+
+    #[test]
+    fn test_json_conversion() {
+        let profile = test_profile();
+        let json = convert_to_json(&profile).unwrap();
+
+        assert!(json.contains("\"version\": \"20260330\""));
+        assert!(json.contains("\"name\": \"Test User\""));
+        assert!(json.contains("\"username\": \"testuser\""));
+        assert!(json.contains("\"email\": \"test@example.com\""));
+        assert!(json.contains("\"roles\": [\"engineer\", \"developer\"]"));
+    }
+
+    #[test]
+    fn test_yaml_conversion() {
+        let profile = test_profile();
+        let yaml = convert_to_yaml(&profile).unwrap();
+
+        assert!(yaml.contains("version: \"20260330\""));
+        assert!(yaml.contains("name: \"Test User\""));
+        assert!(yaml.contains("username: \"testuser\""));
+        assert!(yaml.contains("email: \"test@example.com\""));
+        assert!(yaml.contains("- \"engineer\""));
+        assert!(yaml.contains("- \"developer\""));
+    }
+
+    #[test]
+    fn test_vcf_with_minimal_profile() {
+        let profile = Profile {
+            version: "20260330".to_string(),
+            person: Some(Person {
+                name: Some("Minimal User".to_string()),
+                username: None,
+                email: None,
+                roles: vec![],
+                pronouns: None,
+            }),
+            communication: None,
+            technical: None,
+            preferences: None,
+            domains: None,
+            projects: None,
+            context: None,
+            boundaries: None,
+            api_keys: None,
+        };
+
+        let vcf = convert_to_vcf(&profile).unwrap();
+        assert!(vcf.contains("BEGIN:VCARD"));
+        assert!(vcf.contains("FN:Minimal User"));
+        assert!(vcf.contains("END:VCARD"));
+        // Should not crash with missing fields
+        assert!(!vcf.contains("EMAIL"));
+        assert!(!vcf.contains("NICKNAME"));
     }
 }
