@@ -31,6 +31,7 @@ The file MUST be valid TOML. The top-level structure consists of these sections:
 - `[projects]` - Active projects and context (OPTIONAL)
 - `[context]` - Important paths and resources (OPTIONAL)
 - `[boundaries]` - Hard constraints and principles (OPTIONAL)
+- `[links]` - Online presence and social profiles (OPTIONAL)
 - `[api_keys]` - API credentials (OPTIONAL, SOPS-encrypted recommended)
 
 ## Required Fields
@@ -168,6 +169,22 @@ Hard constraints and principles.
 [boundaries]
 no = ["string", ...]    # OPTIONAL - Things to avoid
 yes = ["string", ...]   # OPTIONAL - Guiding principles
+```
+
+### `[links]` (OPTIONAL)
+
+Online presence and social profiles.
+
+```toml
+[links]
+website = "string"      # OPTIONAL - Personal website URL
+blog = "string"         # OPTIONAL - Blog URL
+github = "string"       # OPTIONAL - GitHub username or URL
+gitlab = "string"       # OPTIONAL - GitLab username or URL
+fediverse = "string"    # OPTIONAL - Fediverse handle (e.g., @user@instance.social)
+twitter = "string"      # OPTIONAL - Twitter/X handle
+linkedin = "string"     # OPTIONAL - LinkedIn profile URL
+# Any additional links as key-value pairs
 ```
 
 ### `[api_keys]` (OPTIONAL)

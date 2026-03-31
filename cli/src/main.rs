@@ -63,6 +63,8 @@ struct Profile {
     #[serde(default)]
     boundaries: Option<toml::Value>,
     #[serde(default)]
+    links: Option<toml::Value>,
+    #[serde(default)]
     api_keys: Option<toml::Value>,
 }
 
@@ -548,6 +550,21 @@ fn show_profile(path: Option<PathBuf>) -> Result<()> {
         }
     }
 
+    // Links section
+    if let Some(links) = &profile.links {
+        if let Some(table) = links.as_table() {
+            if !table.is_empty() {
+                println!("[Links]");
+                for (key, value) in table {
+                    if let Some(s) = value.as_str() {
+                        println!("  {}: {}", key, s);
+                    }
+                }
+                println!();
+            }
+        }
+    }
+
     // API Keys section
     if let Some(api_keys) = &profile.api_keys {
         if let Some(table) = api_keys.as_table() {
@@ -696,6 +713,30 @@ fn convert_to_vcf(profile: &Profile) -> Result<String> {
         vcf.push_str(&format!("NOTE:{}\n", notes.join("\\n")));
     }
 
+    // Add links as URLs
+    if let Some(links) = &profile.links {
+        if let Some(table) = links.as_table() {
+            for (key, value) in table {
+                if let Some(url) = value.as_str() {
+                    // Handle fediverse separately
+                    if key == "fediverse" && url.starts_with("@") {
+                        vcf.push_str(&format!("X-FEDIVERSE:{}\n", url));
+                        continue;
+                    }
+
+                    // Expand short handles to full URLs where appropriate
+                    let full_url = if key == "github" && !url.starts_with("http") {
+                        format!("https://github.com/{}", url)
+                    } else {
+                        url.to_string()
+                    };
+
+                    vcf.push_str(&format!("URL:{}\n", full_url));
+                }
+            }
+        }
+    }
+
     // Add profile source
     vcf.push_str(&format!("SOURCE:whoami-spec v{}\n", profile.version));
 
@@ -783,6 +824,7 @@ mod tests {
             projects: None,
             context: None,
             boundaries: None,
+            links: None,
             api_keys: None,
         }
     }
@@ -845,6 +887,7 @@ mod tests {
             projects: None,
             context: None,
             boundaries: None,
+            links: None,
             api_keys: None,
         };
 
