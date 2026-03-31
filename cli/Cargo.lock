@@ -562,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "whoami-cli"
-version = "20260330.0.1"
+version = "20260331.0.0"
 dependencies = [
  "anyhow",
  "clap",
