@@ -33,7 +33,7 @@ package_managers = ["cargo", "npm", "nix"]
 deployment = ["systemd", "makefiles", "bash-scripts"]
 
 [preferences.code]
-tabs_or_spaces = "tabs"
+tabs_or_spaces = "spaces"
 line_length = 100
 commit_style = "conventional-commits-with-emoji"
 testing_philosophy = "integration-over-unit"
