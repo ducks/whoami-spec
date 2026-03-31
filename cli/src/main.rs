@@ -641,7 +641,8 @@ fn convert_profile(format: String, input: Option<PathBuf>, out: Option<PathBuf>)
         "vcf" => convert_to_vcf(&profile)?,
         "json" => convert_to_json(&profile)?,
         "yaml" => convert_to_yaml(&profile)?,
-        _ => anyhow::bail!("Unsupported format: {}. Supported formats: vcf, json, yaml", format),
+        "schema-org" | "schema.org" => convert_to_schema_org(&profile)?,
+        _ => anyhow::bail!("Unsupported format: {}. Supported formats: vcf, json, yaml, schema-org", format),
     };
 
     // Write to file or stdout
@@ -803,6 +804,69 @@ fn convert_to_yaml(profile: &Profile) -> Result<String> {
     Ok(yaml)
 }
 
+fn convert_to_schema_org(profile: &Profile) -> Result<String> {
+    let mut json = String::from("{\n");
+    json.push_str("  \"@context\": \"https://schema.org\",\n");
+    json.push_str("  \"@type\": \"Person\"");
+
+    if let Some(person) = &profile.person {
+        if let Some(name) = &person.name {
+            json.push_str(&format!(",\n  \"name\": \"{}\"", name));
+        }
+
+        if let Some(email) = &person.email {
+            json.push_str(&format!(",\n  \"email\": \"{}\"", email));
+        }
+
+        if !person.roles.is_empty() {
+            json.push_str(&format!(",\n  \"jobTitle\": \"{}\"", person.roles.join(", ")));
+        }
+    }
+
+    // Add links as sameAs array
+    if let Some(links) = &profile.links {
+        if let Some(table) = links.as_table() {
+            let mut urls = Vec::new();
+
+            for (key, value) in table {
+                if let Some(url) = value.as_str() {
+                    // Expand short handles to full URLs
+                    let full_url = match key.as_str() {
+                        "github" if !url.starts_with("http") => {
+                            format!("https://github.com/{}", url)
+                        }
+                        "fediverse" if url.starts_with("@") => {
+                            // Extract instance from @user@instance format
+                            if let Some(instance_start) = url.rfind('@') {
+                                if instance_start > 0 {
+                                    let instance = &url[instance_start + 1..];
+                                    let username = &url[1..instance_start];
+                                    format!("https://{}/@{}", instance, username)
+                                } else {
+                                    continue;
+                                }
+                            } else {
+                                continue;
+                            }
+                        }
+                        _ => url.to_string(),
+                    };
+                    urls.push(format!("\"{}\"", full_url));
+                }
+            }
+
+            if !urls.is_empty() {
+                json.push_str(",\n  \"sameAs\": [\n    ");
+                json.push_str(&urls.join(",\n    "));
+                json.push_str("\n  ]");
+            }
+        }
+    }
+
+    json.push_str("\n}\n");
+    Ok(json)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -898,5 +962,17 @@ mod tests {
         // Should not crash with missing fields
         assert!(!vcf.contains("EMAIL"));
         assert!(!vcf.contains("NICKNAME"));
+    }
+
+    #[test]
+    fn test_schema_org_conversion() {
+        let profile = test_profile();
+        let schema = convert_to_schema_org(&profile).unwrap();
+
+        assert!(schema.contains("\"@context\": \"https://schema.org\""));
+        assert!(schema.contains("\"@type\": \"Person\""));
+        assert!(schema.contains("\"name\": \"Test User\""));
+        assert!(schema.contains("\"email\": \"test@example.com\""));
+        assert!(schema.contains("\"jobTitle\": \"engineer, developer\""));
     }
 }
