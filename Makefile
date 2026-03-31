@@ -36,10 +36,10 @@ version-bump:
 	@echo "Creating release branch for version $(VERSION)..."
 	@git checkout -b release/v$(VERSION)
 	@echo "Bumping version to $(VERSION)..."
-	@sed -i 's/^version = .*/version = "$(VERSION)"/' validator/Cargo.toml
+	@sed -i 's/^version = .*/version = "$(VERSION)"/' cli/Cargo.toml
 	@echo "Updating Cargo.lock..."
-	@cd validator && cargo check --quiet 2>/dev/null || true
-	@git add validator/Cargo.toml validator/Cargo.lock
+	@cd cli && cargo check --quiet 2>/dev/null || true
+	@git add cli/Cargo.toml cli/Cargo.lock
 	@git diff --staged --quiet || git commit -m "chore: bump version to $(VERSION)"
 	@echo ""
 	@echo "Created branch release/v$(VERSION)"
@@ -63,7 +63,7 @@ release: version-bump
 	@echo "GitHub Actions will build release binaries"
 	@echo ""
 	@echo "Publishing to crates.io..."
-	@cd validator && cargo publish
+	@cd cli && cargo publish
 	@echo ""
 	@echo "Published to crates.io!"
 	@echo "View at: https://crates.io/crates/whoami-cli"
@@ -71,23 +71,23 @@ release: version-bump
 # Publish to crates.io (standalone)
 publish:
 	@echo "Publishing to crates.io..."
-	@cd validator && cargo publish
+	@cd cli && cargo publish
 	@echo ""
 	@echo "Published to crates.io!"
 	@echo "View at: https://crates.io/crates/whoami-cli"
 
 # Build release binary
 build:
-	cd validator && cargo build --release
+	cd cli && cargo build --release
 
 # Run tests
 test:
-	cd validator && cargo test
+	cd cli && cargo test
 
 # Run clippy
 clippy:
-	cd validator && cargo clippy
+	cd cli && cargo clippy
 
 # Clean build artifacts
 clean:
-	cd validator && cargo clean
+	cd cli && cargo clean
